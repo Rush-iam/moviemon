@@ -81,6 +81,7 @@ class GameData:
 
     def get_slots(self):
         slots = {}
+        print(slots)
         for file in os.listdir(settings.SAVE_DIR):
             if file.startswith('slot') and len(file) > 4:
                 slots[int(file[4])] = file

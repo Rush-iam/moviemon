@@ -40,7 +40,8 @@ def title(request: HttpRequest) -> HttpResponse:
 
     context = {
         'title': 'Title Screen',
-        'buttons_active': {'A', 'B'},
+        # 'buttons_active': {'A', 'B'},
+        'buttons_active': {'A'},
     }
     return render(request, 'moviemon/title.html', context)
 
