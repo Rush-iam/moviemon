@@ -1,0 +1,34 @@
+{% extends 'base.html' %}
+
+{% block screen %}
+
+    <div class="center">
+    <table class="moviedex">
+
+
+        {% if message %}
+            <span class="message"> {{ message|safe }}</span>
+        {% endif %}
+
+        {% for m_row in grid %}
+        <tr>
+
+            {% for index in m_row %}
+                <td class="moviemon_cell">
+                    <div class="poster">
+                        {% load static %}
+                        <img src="{% static moviemons|return_poster:index %}">
+                    </div>
+                    <div class="strength">
+                        {{ moviemons|return_rating:index }}
+                    </div>
+                </td>
+            {% endfor %}
+
+        </tr>
+        {% endfor %}
+
+    </table>
+    </div>
+
+{% endblock screen %}
