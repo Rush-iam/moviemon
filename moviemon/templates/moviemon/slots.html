@@ -3,35 +3,24 @@
 {% block screen %}
 
     <div class="center">
-    <table class="moviedex">
+    <table class="slots">
 
+    {% for slot in slots %}
         <tr style="height: 33%; line-height: 33%;"
-                    {% if active_index == 0 %}
-                            id="moviemon_cell_active"
+                    {% if slot == active_index %}
+                            id="cell_active"
                     {% endif %}
                 >
-            <td>
-                {{ slot1 }}
+            <td
+                {% if slots|return_by_key:slot == 'Free' %}
+                        id="free"
+                {% endif %}
+            >
+                <h3>Slot {{ slot|title }}</h3><br>
+                {{ slots|return_by_key:slot }}
             </td>
         </tr>
-        <tr style="height: 33%; line-height: 33%;"
-                    {% if active_index == 1 %}
-                            id="moviemon_cell_active"
-                    {% endif %}
-                >
-            <td>
-                {{ slot2 }}
-            </td>
-        </tr>
-        <tr style="height: 33%; line-height: 33%;"
-                    {% if active_index == 2 %}
-                            id="moviemon_cell_active"
-                    {% endif %}
-                >
-            <td>
-                {{ slot3 }}
-            </td>
-        </tr>
+    {% endfor %}
 
     </table>
     </div>

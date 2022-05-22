@@ -9,6 +9,6 @@ urlpatterns = [
     path('moviedex', views.moviedex, name='moviedex'),
     # path('moviedex/<str:moviemon_id>', views.title_screen, name='detail'),
     path('options', views.options, name='options'),
-    path('options/save_game', views.save, name='save'),
-    # path('options/load_game', views.title_screen, name='load'),
+    path('options/save_game', views.save_load, name='save'),
+    path('options/load_game', views.save_load, name='load'),
 ]

@@ -1,6 +1,8 @@
 import pickle
 import random
 from enum import Enum
+from pathlib import Path
+
 import requests
 import os
 
@@ -27,9 +29,6 @@ class Player:
         self.moviedex = []
         self.strength = strength
 
-    def calc_win_rate(self, moviemon_rating):
-        return 33
-
 
 class GameData:
     moviemons: dict
@@ -41,7 +40,7 @@ class GameData:
     map_state_moviemon: int
     battle_state: BattleState
     moviedex_index: int
-    slot_index: int
+    slot_state: str
 
     def __init__(self, player, moviemons, map_size_x, map_size_y):
         random.seed()
@@ -54,7 +53,7 @@ class GameData:
         self.map_state_moviemon = 0
         self.battle_state = BattleState.NONE
         self.moviedex_index = 0
-        self.slot_index = 0
+        self.slot_state = 'a'
 
     @classmethod
     def load_default_settings(cls):
@@ -79,36 +78,47 @@ class GameData:
         map_size_y = settings.MAP_HEIGHT
         return GameData(player, moviemons, map_size_x, map_size_y)
 
-    def get_slots(self):
+    @staticmethod
+    def get_slots():
         slots = {}
-        print(slots)
+        save_dir = Path(settings.SAVE_DIR)
+        if not save_dir.exists():
+            save_dir.mkdir()
         for file in os.listdir(settings.SAVE_DIR):
             if file.startswith('slot') and len(file) > 4:
-                slots[int(file[4])] = file
+                slots[file[4]] = file
         return slots
+
+    @staticmethod
+    def slot_filename_decode(file_name):
+        words = file_name.split('_')
+        moviedex_len = words[1]
+        moviemons_len = words[2].split('.')[0]
+        return f'Progress: {moviedex_len}/{moviemons_len}'
+
+    @staticmethod
+    def slot_filename_encode(slot, moviedex_len, moviemons_len):
+        return f'slot{slot}_{moviedex_len}_{moviemons_len}.mmg'
 
     def load_game(self, slot):
         slots = self.get_slots()
         if slot in slots:
-            with open(slots[slot], 'rb') as gd_file:
+            with open(os.path.join(settings.SAVE_DIR, slots[slot]), 'rb') as gd_file:
                 game = pickle.load(gd_file)
-        return self.load(game)
+            return game
+        return None
 
     def save_game(self, slot):
-        pathfile = "{}/slot{}_{}_{}.mmg".format(
-            settings.SAVE_DIR,
-            list(['a', 'b', 'c'])[slot],
-            len(self.player.moviedex),
-            len(self.moviemons)
+        slots = self.get_slots()
+        if slot in slots:
+            os.remove(os.path.join(settings.SAVE_DIR, slots[slot]))
+
+        file_name = self.slot_filename_encode(
+            slot, len(self.player.moviedex), len(self.moviemons)
         )
+        pathfile = os.path.join(settings.SAVE_DIR, file_name)
         with open(pathfile, 'wb') as gd_file:
             pickle.dump(self, gd_file)
-
-    def load(self, game) -> object:
-        return game
-
-    def dump(self):
-        return self
 
     def get_random_movie(self):
         list_moviemon_nc = self.get_not_caught()
@@ -126,6 +136,14 @@ class GameData:
 
     def get_strength(self):
         return self.player.strength + len(self.player.moviedex)
+
+    def calc_win_rate(self, moviemon_id):
+        moviemon_rating = self.moviemons[moviemon_id]['rating']
+        moviemon_strength = int(float(moviemon_rating) * 10)
+        win_rate = 50 - moviemon_strength + self.get_strength() * 5
+        win_rate = min(90, win_rate)
+        win_rate = max(1, win_rate)
+        return win_rate
 
     def get_movie(self, moviemon_id):
         return self.moviemons.get(moviemon_id)
@@ -161,7 +179,7 @@ class GameData:
             self.set_random_map_state()
 
     def try_to_catch(self, movie_id: str):
-        win_rate = self.player.calc_win_rate(movie_id)
+        win_rate = self.calc_win_rate(movie_id)
         if random.randrange(100) < win_rate:
             self.player.moviedex.append(movie_id)
         else:
@@ -177,7 +195,8 @@ class MoviesInfo:
         for title in titles_movies:
             try:
                 response_json = requests.get(
-                    'http://www.omdbapi.com/?apikey=' + settings.OMDB_KEY + '&t="' + title + '"'
+                    f'http://www.omdbapi.com/?apikey='
+                    f'{settings.OMDB_KEY}&t="{title}"'
                 )
             except Exception as e:
                 raise Http404()
@@ -192,6 +211,7 @@ class MoviesInfo:
                 raise Http404()
 
             cls.film_list.append(res)
+        print(f'{len(cls.film_list)} films got from OMDB')
 
     @classmethod
     def get_list(cls):

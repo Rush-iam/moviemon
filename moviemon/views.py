@@ -10,18 +10,18 @@ from .game import GameData, MapState, BattleState
 
 
 @register.filter
-def return_poster(l, i):
+def return_poster(moviemons, i):
     try:
-        return l[i]['poster']
-    except:
+        return moviemons[i]['poster']
+    except:  # noqa
         return None
 
 
 @register.filter
-def return_rating(l, i):
+def return_by_key(src, i):
     try:
-        return l[i]['rating']
-    except:
+        return src[i]
+    except:  # noqa
         return None
 
 
@@ -32,7 +32,8 @@ def title(request: HttpRequest) -> HttpResponse:
     if request.method == 'POST':
         match pressed_button(request.POST):
             case 'A':
-                game.load_default_settings()
+                global game
+                game = game.load_default_settings()
                 return redirect('worldmap')
             case 'B':
                 return redirect('load')
@@ -40,8 +41,7 @@ def title(request: HttpRequest) -> HttpResponse:
 
     context = {
         'title': 'Title Screen',
-        # 'buttons_active': {'A', 'B'},
-        'buttons_active': {'A'},
+        'buttons_active': {'A', 'B'},
     }
     return render(request, 'moviemon/title.html', context)
 
@@ -59,35 +59,52 @@ def options(request: HttpRequest) -> HttpResponse:
 
     context = {
         'title': 'Options',
-        # 'buttons_active': {'Start', 'A', 'B'},
-        'buttons_active': {'Start', 'B'},
+        'buttons_active': {'Start', 'A', 'B'},
     }
     return render(request, 'moviemon/options.html', context)
 
 
-def save(request: HttpRequest) -> HttpResponse:
+def save_load(request: HttpRequest) -> HttpResponse:
+    global game
+    action = request.resolver_match.view_name
+
     if request.method == 'POST':
         match pressed_button(request.POST):
             case 'Up':
-                game.slot_index = max(0, game.slot_index - 1)
+                if game.slot_state != 'a':
+                    game.slot_state = chr(ord(game.slot_state) - 1)
             case 'Down':
-                game.slot_index = min(2, game.slot_index + 1)
+                if game.slot_state != 'c':
+                    game.slot_state = chr(ord(game.slot_state) + 1)
             case 'A':
-                game.save_game(game.slot_index)
-                return redirect('worldmap')
+                if action == 'save':
+                    game.save_game(game.slot_state)
+                elif action == 'load':
+                    if (new_game := game.load_game(game.slot_state)) is not None:
+                        game = new_game
+                        return redirect('worldmap')
             case 'B':
-                return redirect('options')
+                if action == 'save':
+                    return redirect('options')
+                elif action == 'load':
+                    return redirect('title')
         return redirect(request.resolver_match.view_name)
 
-    slots = game.get_slots()
+    slots = {
+        slot: game.slot_filename_decode(file_name)
+        for slot, file_name in game.get_slots().items()
+    }
     context = {
         'title': 'Options',
         'buttons_active': {'Up', 'Down', 'A', 'B'},
-        'slot1': slots[0] if 0 in slots else 'Empty',
-        'slot2': slots[1] if 1 in slots else 'Empty',
-        'slot3': slots[2] if 2 in slots else 'Empty',
-        'active_index': game.slot_index,
+        'slots': {slot: slots.get(slot, 'Free') for slot in ('a', 'b', 'c')},
+        'active_index': game.slot_state,
     }
+    if game.slot_state == 'a':
+        context['buttons_active'].remove('Up')
+    elif game.slot_state == 'c':
+        context['buttons_active'].remove('Down')
+
     return render(request, 'moviemon/slots.html', context)
 
 
@@ -167,7 +184,7 @@ def battle(request: HttpRequest, moviemon_id: str) -> HttpResponse:
         'moviemon_strength': movie['rating'],
         'moviemon_img': movie['poster'],
         'player_strength': game.get_strength(),
-        'win_rate': game.player.calc_win_rate(movie['rating'])
+        'win_rate': game.calc_win_rate(moviemon_id)
     }
 
     if moviemon_id in game.player.moviedex:
