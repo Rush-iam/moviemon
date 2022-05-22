@@ -2,6 +2,7 @@ import pickle
 import random
 from enum import Enum
 import requests
+import os
 
 from django.conf import settings
 from django.shortcuts import Http404
@@ -76,44 +77,35 @@ class GameData:
         map_size_y = settings.MAP_HEIGHT
         return GameData(player, moviemons, map_size_x, map_size_y)
 
-    ########
+    def get_slots(self):
+        slots = {}
+        for file in os.listdir(settings.SAVE_DIR):
+            if file.startswith('slot') and len(file) > 4:
+                slots[int(file[4])] = file
+        return slots
 
-    def load_game(self, save_file):
-        gd_file = open(settings.SAVE_DIR + '/' + save_file, 'rb')
-        data = pickle.load(gd_file)
-        gd_file.close()
-        self.load(data)
+    def load_game(self, slot):
+        slots = self.get_slots()
+        if slot in slots:
+            with open(slots[slot], 'rb') as gd_file:
+                game = pickle.load(gd_file)
+        return self.load(game)
 
     def save_game(self, slot):
-        pathfile = "{}/slot{}_{}_{}.sav".format(
+        pathfile = "{}/slot{}_{}_{}.mmg".format(
             settings.SAVE_DIR,
-            list(['a','b','c'])[slot],
-            len(self.data['player'].moviedex),
-            len(self.data['moviemons'])
+            list(['a', 'b', 'c'])[slot],
+            len(self.player.moviedex),
+            len(self.moviemons)
         )
-        gd_file = open(pathfile, 'wb')
-        pickle.dump(self.data,gd_file)
-        gd_file.close()
+        with open(pathfile, 'wb') as gd_file:
+            pickle.dump(self, gd_file)
 
-    def save_state(self):
-        gd_file = open('gamestate', 'wb')
-        pickle.dump(self.data,gd_file)
-        gd_file.close()
-
-    def load_state(self):
-        gd_file = open('gamestate', 'rb')
-        self.data = pickle.load(gd_file)
-        gd_file.close()
-
-    def load(self, data: object) -> object:
-        self.data = data
-        self.save_state()
-        return self
+    def load(self, game) -> object:
+        return game
 
     def dump(self):
-        return self.data
-
-    ########
+        return self
 
     def get_random_movie(self):
         list_moviemon_nc = self.get_not_caught()
