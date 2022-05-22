@@ -63,6 +63,32 @@ def options(request: HttpRequest) -> HttpResponse:
     return render(request, 'moviemon/options.html', context)
 
 
+def save(request: HttpRequest) -> HttpResponse:
+    if request.method == 'POST':
+        match pressed_button(request.POST):
+            case 'Up':
+                game.slot_index = max(0, game.slot_index - 1)
+            case 'Down':
+                game.slot_index = min(2, game.slot_index + 1)
+            case 'A':
+                game.save_game(game.slot_index)
+                return redirect('worldmap')
+            case 'B':
+                return redirect('options')
+        return redirect(request.resolver_match.view_name)
+
+    slots = game.get_slots()
+    context = {
+        'title': 'Options',
+        'buttons_active': {'Up', 'Down', 'A', 'B'},
+        'slot1': slots[0] if 0 in slots else 'Empty',
+        'slot2': slots[1] if 1 in slots else 'Empty',
+        'slot3': slots[2] if 2 in slots else 'Empty',
+        'active_index': game.slot_index,
+    }
+    return render(request, 'moviemon/slots.html', context)
+
+
 def worldmap(request: HttpRequest) -> HttpResponse:
     if request.method == 'POST':
         match pressed_button(request.POST):

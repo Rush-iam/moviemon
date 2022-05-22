@@ -1,0 +1,39 @@
+{% extends 'base.html' %}
+
+{% block screen %}
+
+    <div class="center">
+    <table class="moviedex">
+
+        <tr style="height: 33%; line-height: 33%;"
+                    {% if active_index == 0 %}
+                            id="moviemon_cell_active"
+                    {% endif %}
+                >
+            <td>
+                {{ slot1 }}
+            </td>
+        </tr>
+        <tr style="height: 33%; line-height: 33%;"
+                    {% if active_index == 1 %}
+                            id="moviemon_cell_active"
+                    {% endif %}
+                >
+            <td>
+                {{ slot2 }}
+            </td>
+        </tr>
+        <tr style="height: 33%; line-height: 33%;"
+                    {% if active_index == 2 %}
+                            id="moviemon_cell_active"
+                    {% endif %}
+                >
+            <td>
+                {{ slot3 }}
+            </td>
+        </tr>
+
+    </table>
+    </div>
+
+{% endblock screen %}

@@ -41,6 +41,7 @@ class GameData:
     map_state_moviemon: int
     battle_state: BattleState
     moviedex_index: int
+    slot_index: int
 
     def __init__(self, player, moviemons, map_size_x, map_size_y):
         random.seed()
@@ -53,6 +54,7 @@ class GameData:
         self.map_state_moviemon = 0
         self.battle_state = BattleState.NONE
         self.moviedex_index = 0
+        self.slot_index = 0
 
     @classmethod
     def load_default_settings(cls):
