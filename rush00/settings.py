@@ -119,3 +119,48 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/4.0/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+### Game Settings ###
+
+OMDB_KEY = "3cc63f26"
+
+MOVIES = [
+    "Doctor Strange in the Multiverse of Madness",
+    "Stranger Things",
+    "Avatar",
+    "Thor: Love and Thunder",
+    "Love, Death & Robots",
+    "Doctor Who",
+    "Dune",
+    "Supernatural",
+    "Aquaman",
+    "Eternals",
+    "Avengers: Endgame",
+    "Rick and Morty",
+    "The Witcher",
+    "Fantastic Beasts: The Crimes of Grindelwald",
+    "Venom: Let There Be Carnage",
+    "The Evil Dead",
+    "The Expanse",
+    "Shang-Chi and the Legend of the Ten Rings",
+    "Avengers: Infinity War",
+    "Harry Potter and the Sorcerer's Stone"
+]
+
+NBR_MOVIEBALL = 5
+
+PLAYER_STRENGH = 5
+
+MAP_WIDTH = 10
+
+MAP_HEIGHT = 10
+
+PLAYER_POS_X = 5
+
+PLAYER_POS_Y = 5
+
+FIND_MOVIEBALL_PERCENT = 50
+
+FIND_MOVIEMON_PERCENT = 50
+
+SAVE_DIR = 'savegame'
