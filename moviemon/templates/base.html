@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <title>{% block title %} Moviemon! {% endblock title %}</title>
+
+    {% load static %}
+    <link rel="stylesheet" type="text/css" href="{% static 'style.css' %}">
+</head>
+
+<body>
+
+<div class="canvas">
+    <div class="screen">
+        {% block screen %}{% endblock screen %}
+    </div>
+
+    <div class="messages">
+        <ul>
+        {% for message in messages %}
+            <li>{{ message }}</li>
+        {% endfor %}
+        </ul>
+    </div>
+
+    <div class="navigation">
+        {% include 'moviemon/nav.html' %}
+    </div>
+
+</div>
+</body>
+</html>

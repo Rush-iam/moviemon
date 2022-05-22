@@ -1,1 +1,16 @@
-navigation
+<form method="POST">
+    {% csrf_token %}
+
+    {% for button in buttons %}
+
+        <input
+                type="submit"
+                name="button"
+                value="{{ button }}"
+                {% if button not in buttons_active %}
+                    disabled
+                {% endif %}
+        >
+
+    {% endfor %}
+</form>

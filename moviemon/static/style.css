@@ -1,0 +1,39 @@
+body {
+    margin: auto;
+    width: 700px;
+}
+
+input {
+    font-size: 200%;
+}
+
+.canvas {
+    border: 10px solid black;
+}
+
+.screen {
+    height: 700px;
+    border: 2px solid black;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.messages {
+    border: 2px solid black;
+    font-size: 200%;
+    height: 80px;
+}
+
+.messages ul {
+    margin: 0;
+}
+
+
+.navigation {
+    height: 160px;
+    border: 2px solid black;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
