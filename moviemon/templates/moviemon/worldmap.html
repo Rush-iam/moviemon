@@ -1,0 +1,35 @@
+{% extends 'base.html' %}
+
+{% block screen %}
+
+    <span class="movieballs"> Balls: {{ movieballs }}⚽</span>
+
+    <div class="center">
+    {% if map_message %}
+        <span class="message"> {{ map_message|safe }}</span>
+    {% endif %}
+
+
+    <table class="map">
+    {% for y in map_size_y %}
+        <tr style="height: {{ map_cell_size }}%;
+                line-height: {{ map_cell_size }}%;">
+
+        {% for x in map_size_x %}
+            <td style="width: {{ map_cell_size }}%;">
+
+            {% if x == player_pos_x and y == player_pos_y %}
+                <span class="player">🧍‍</span>
+            {% else %}
+                <span class="empty"></span>
+            {% endif %}
+
+            </td>
+        {% endfor %}
+
+        </tr>
+    {% endfor %}
+    </table>
+    </div>
+
+{% endblock screen %}
