@@ -59,7 +59,8 @@ def options(request: HttpRequest) -> HttpResponse:
 
     context = {
         'title': 'Options',
-        'buttons_active': {'Start', 'A', 'B'},
+        # 'buttons_active': {'Start', 'A', 'B'},
+        'buttons_active': {'Start', 'B'},
     }
     return render(request, 'moviemon/options.html', context)
 
