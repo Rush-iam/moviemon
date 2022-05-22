@@ -1,0 +1,42 @@
+{% extends 'base.html' %}
+
+{% block screen %}
+
+    <span class="movieballs">{{ movieballs }} ⚽</span>
+
+    {% if message %}
+    <span class="top">
+        <span class="message"> {{ message|safe }}</span>
+    </span>
+    {% endif %}
+
+    <table class="battle"><tr>
+
+        <td class="battle_me">
+            <div class="my_poster">
+                🧍
+            </div>
+            <div class="strength">
+                {{ player_strength }}
+            </div>
+
+        </td>
+
+        <td>
+            <span class="vs">VS</span><br>
+            <span class="win_rate">{{ win_rate }}%</span>
+        </td>
+
+        <td class="moviemon">
+            <div class="poster">
+                {% load static %}
+                <img src="{% static moviemon_img %}">
+            </div>
+            <div class="strength">
+                {{ moviemon_strength }}
+            </div>
+        </td>
+
+    </tr></table>
+
+{% endblock screen %}
