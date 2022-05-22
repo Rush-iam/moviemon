@@ -88,14 +88,18 @@ table.moviedex {
     width: 100%;
     height: 100%;
     background: darkgray;
+    table-layout: fixed;
+    border-collapse: collapse;
+    text-align: center;
 }
 
 .moviemon_cell .poster img {
-    max-width: 50%;
-    max-height: 50%;
+    max-width: 65%;
+    max-height: 65%;
 }
 
-td.moviemon_cell {
+#moviemon_cell_active {
+    border: 5px solid blue;
 }
 
 .movieballs {

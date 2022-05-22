@@ -1,12 +1,12 @@
 import math
-import random
-from enum import Enum
 
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import render, redirect
 
 from moviemon.views_utils import pressed_button
 from django.template.defaulttags import register
+
+from .game import GameData, MapState, BattleState
 
 
 @register.filter
@@ -16,6 +16,7 @@ def return_poster(l, i):
     except:
         return None
 
+
 @register.filter
 def return_rating(l, i):
     try:
@@ -24,93 +25,7 @@ def return_rating(l, i):
         return None
 
 
-class MapState(Enum):
-    NONE = 0
-    MON = 1
-    BALL = 2
-
-
-class BattleState(Enum):
-    NONE = 0
-    MISSED = 1
-
-
-class GameDummy:
-    class Player:
-        pos_x = 3
-        pos_y = 5
-        movieballs = 2
-        caught = [123]
-        strength = 3.2
-
-        def calc_win_rate(self, movimon_rating):
-            return 33
-
-    player = Player()
-    map_size_x = 10
-    map_size_y = 10
-    moviemons = {
-        123: {
-            'title': 'Godzilla',
-            'rating': 3.3,
-            'poster': 'posters/godzilla.jpg'
-        }
-    }
-
-    map_state: MapState = MapState.NONE
-    map_state_moviemon = 123
-
-    battle_state: BattleState = BattleState.NONE
-
-    moviedex_index = 0
-
-    def __init__(self):
-        random.seed()
-
-    def get_movie(self, movie_id: int):
-        return self.moviemons[movie_id]
-
-    def try_to_catch(self, movie_id: int):
-        if random.randrange(2) == 1:  # DO CALC BY SUBJECT
-            self.player.caught.append(movie_id)
-        else:
-            self.battle_state = BattleState.MISSED
-
-    def load_default_settings(self):
-        self.map_state = MapState.NONE
-
-    def set_random_map_state(self):
-        self.map_state = random.choice((MapState.NONE, MapState.MON, MapState.BALL))
-        not_caught = [m for m in self.moviemons if m not in self.player.caught]
-        if self.map_state == MapState.MON and not_caught:
-            self.map_state_moviemon = random.choice(not_caught)
-        elif self.map_state == MapState.BALL:
-            self.player.movieballs += 1
-        else:
-            self.map_state = MapState.NONE
-
-    def move_up(self):
-        if self.player.pos_y != 0:
-            self.player.pos_y -= 1
-            self.set_random_map_state()
-
-    def move_down(self):
-        if self.player.pos_y != self.map_size_y - 1:
-            self.player.pos_y += 1
-            self.set_random_map_state()
-
-    def move_left(self):
-        if self.player.pos_x != 0:
-            self.player.pos_x -= 1
-            self.set_random_map_state()
-
-    def move_right(self):
-        if self.player.pos_x != self.map_size_x - 1:
-            self.player.pos_x += 1
-            self.set_random_map_state()
-
-
-game = GameDummy()
+game = GameData.load_default_settings()
 
 
 def title(request: HttpRequest) -> HttpResponse:
@@ -128,6 +43,24 @@ def title(request: HttpRequest) -> HttpResponse:
         'buttons_active': {'A', 'B'},
     }
     return render(request, 'moviemon/title.html', context)
+
+
+def options(request: HttpRequest) -> HttpResponse:
+    if request.method == 'POST':
+        match pressed_button(request.POST):
+            case 'Start':
+                return redirect('worldmap')
+            case 'A':
+                return redirect('save')
+            case 'B':
+                return redirect('title')
+        return redirect(request.resolver_match.view_name)
+
+    context = {
+        'title': 'Options',
+        'buttons_active': {'Start', 'A', 'B'},
+    }
+    return render(request, 'moviemon/options.html', context)
 
 
 def worldmap(request: HttpRequest) -> HttpResponse:
@@ -186,7 +119,7 @@ def worldmap(request: HttpRequest) -> HttpResponse:
     return render(request, 'moviemon/worldmap.html', context)
 
 
-def battle(request: HttpRequest, moviemon_id: int) -> HttpResponse:
+def battle(request: HttpRequest, moviemon_id: str) -> HttpResponse:
     if request.method == 'POST':
         match pressed_button(request.POST):
             case 'A':
@@ -205,11 +138,11 @@ def battle(request: HttpRequest, moviemon_id: int) -> HttpResponse:
         'movieballs': game.player.movieballs,
         'moviemon_strength': movie['rating'],
         'moviemon_img': movie['poster'],
-        'player_strength': game.player.strength,
+        'player_strength': game.get_strength(),
         'win_rate': game.player.calc_win_rate(movie['rating'])
     }
 
-    if moviemon_id in game.player.caught:
+    if moviemon_id in game.player.moviedex:
         context['buttons_active'].remove('A')
         context['message'] = 'You caught it!'
     else:
@@ -226,8 +159,8 @@ def battle(request: HttpRequest, moviemon_id: int) -> HttpResponse:
 
 def moviedex(request: HttpRequest) -> HttpResponse:
     index = game.moviedex_index
-    movies_caught = len(game.player.caught)
-    grid_size = int(math.floor(movies_caught**0.5))
+    movies_caught = len(game.player.moviedex)
+    grid_size = int(math.ceil(movies_caught**0.5))
 
     if request.method == 'POST':
         match pressed_button(request.POST):
@@ -244,7 +177,7 @@ def moviedex(request: HttpRequest) -> HttpResponse:
                 if index < movies_caught - 1:
                     game.moviedex_index += 1
             case 'A':
-                return redirect(f'detail/{game.player.caught[index]}')
+                return redirect(f'detail/{game.player.moviedex[index]}')
             case 'Select':
                 return redirect('worldmap')
         return redirect(request.resolver_match.view_name)
@@ -256,16 +189,21 @@ def moviedex(request: HttpRequest) -> HttpResponse:
             'message': 'No Moviemons caught :('
         })
 
-    movies = [game.moviemons[index] for index in game.player.caught]
-    moviemons_grid = (range(x, x+grid_size) for x in range(0, movies_caught, grid_size))
+    movies = [game.moviemons[index] for index in game.player.moviedex]
+    moviemons_grid = [
+        range(x, min(x+grid_size, movies_caught))
+        for x in range(0, movies_caught, grid_size)
+    ]
 
+    print(moviemons_grid, movies_caught)
     context = {
         'title': 'Moviedex',
-        'buttons_active': {'Up', 'Down', 'Left', 'Right', 'Select', 'A'},
+        'buttons_active': {'Up', 'Down', 'Left', 'Right', 'Select'},
+        # 'buttons_active': {'Up', 'Down', 'Left', 'Right', 'Select', 'A'},
         'moviemons': movies,
         'grid': moviemons_grid,
-        'active_index_x': index % grid_size,
-        'active_index_y': index // grid_size,
+        'active_index': index,
+        'cell_size': 100 / grid_size,
     }
 
     return render(request, 'moviemon/moviedex.html', context)

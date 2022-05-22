@@ -1,15 +1,82 @@
 import pickle
-from django.shortcuts import Http404
-import requests
-from django.conf import settings
 import random
-import os
-import re
+from enum import Enum
+import requests
 
-class GameData():
-    data = {}
-    list_movie_nc = []
-    catchable = ''
+from django.conf import settings
+from django.shortcuts import Http404
+
+
+class MapState(Enum):
+    NONE = 0
+    MON = 1
+    BALL = 2
+
+
+class BattleState(Enum):
+    NONE = 0
+    MISSED = 1
+
+
+class Player:
+    def __init__(self, x, y, balls, strength):
+        self.pos_x = x
+        self.pos_y = y
+        self.movieballs = balls
+        self.moviedex = []
+        self.strength = strength
+
+    def calc_win_rate(self, moviemon_rating):
+        return 33
+
+
+class GameData:
+    moviemons: dict
+    player: Player
+    map_size_x: int
+    map_size_y: int
+
+    map_state: MapState
+    map_state_moviemon: int
+    battle_state: BattleState
+    moviedex_index: int
+
+    def __init__(self, player, moviemons, map_size_x, map_size_y):
+        random.seed()
+        self.player = player
+        self.moviemons = moviemons
+        self.map_size_x = map_size_x
+        self.map_size_y = map_size_y
+
+        self.map_state = MapState.NONE
+        self.map_state_moviemon = 0
+        self.battle_state = BattleState.NONE
+        self.moviedex_index = 0
+
+    @classmethod
+    def load_default_settings(cls):
+        player = Player(
+                x=settings.PLAYER_POS_X,
+                y=settings.PLAYER_POS_Y,
+                balls=settings.NBR_MOVIEBALL,
+                strength=settings.PLAYER_STRENGTH,
+            )
+        moviemons = {m['imdbID']: {
+            "name": m['Title'],
+            "poster": m['Poster'],
+            "real": m["Director"],
+            "year": m["Year"],
+            "rating": m['imdbRating'],
+            "synopsis": m["Plot"],
+            "actors": m["Actors"],
+        } for m in MoviesInfo.get_list()}
+        player.moviedex = []
+
+        map_size_x = settings.MAP_WIDTH
+        map_size_y = settings.MAP_HEIGHT
+        return GameData(player, moviemons, map_size_x, map_size_y)
+
+    ########
 
     def load_game(self, save_file):
         gd_file = open(settings.SAVE_DIR + '/' + save_file, 'rb')
@@ -18,7 +85,12 @@ class GameData():
         self.load(data)
 
     def save_game(self, slot):
-        pathfile = "{}/slot{}_{}_{}.sav".format(settings.SAVE_DIR,list(['a','b','c'])[slot],len(self.data['moviedex']),len(self.data['list_moviemon']))
+        pathfile = "{}/slot{}_{}_{}.sav".format(
+            settings.SAVE_DIR,
+            list(['a','b','c'])[slot],
+            len(self.data['player'].moviedex),
+            len(self.data['moviemons'])
+        )
         gd_file = open(pathfile, 'wb')
         pickle.dump(self.data,gd_file)
         gd_file.close()
@@ -35,86 +107,71 @@ class GameData():
 
     def load(self, data: object) -> object:
         self.data = data
-        self.list_movie_nc = self.get_list_movi_nc()
         self.save_state()
         return self
 
     def dump(self):
-        return(self.data)
+        return self.data
 
-    def load_default_settings(self):
-        self.data = {
-            "position": [settings.PLAYER_POS_X, settings.PLAYER_POS_Y],
-            "nbr_movieball":settings.NBR_MOVIEBALL,
-            "moviedex":[],
-            "list_moviemon" : movies.MoviesInfo().get_list(),
-        }
-        list_movie_nc = settings.MOVIES
-        return self
-
-    def get_list_movi_nc(self):
-        movie_nc = []
-        for movie in self.data['list_moviemon']:
-            if not movie['imdbID'] in self.data['moviedex']:
-                movie_nc.append(movie['imdbID'])
-        return(movie_nc)
+    ########
 
     def get_random_movie(self):
-        list_moviemon_nc = self.get_list_movi_nc()
-        return list_moviemon_nc[random.randint(0,len(list_moviemon_nc) - 1)]
+        list_moviemon_nc = self.get_not_caught()
+        if len(list_moviemon_nc):
+            return random.choice(list_moviemon_nc)
+        else:
+            return 0
+
+    def get_not_caught(self):
+        not_caught = []
+        for movie_id in self.moviemons:
+            if movie_id not in self.player.moviedex:
+                not_caught.append(movie_id)
+        return not_caught
 
     def get_strength(self):
-        return(len(self.data['moviedex']))
+        return self.player.strength + len(self.player.moviedex)
 
     def get_movie(self, moviemon_id):
-        for movie in self.data["list_moviemon"]:
-            if movie['imdbID'] ==  moviemon_id:
-                detail_movie = {
-                    "name" : movie['Title'],
-                    "poster" : movie['Poster'],
-                    "real" : movie["Director"],
-                    "year" : movie["Year"],
-                    "rating" : movie['imdbRating'],
-                    "synopsis" : movie["Plot"],
-                    "actors" : movie["Actors"],
-                }
-                return detail_movie
-        return None
+        return self.moviemons.get(moviemon_id)
 
-    # def checkpos(self):
-    #     if self.data['position'][0] < 0 or self.data['position'][0] >= settings.MAP_WIDTH:
-    #         self.load_state()
-    #     elif self.data['position'][1] < 0 or self.data['position'][1] >= settings.MAP_HEIGHT:
-    #         self.load_state()
-    #     else:
-    #         return 1
-    #     return 0
+    def set_random_map_state(self):
+        self.map_state = random.choice((MapState.NONE, MapState.MON, MapState.BALL))
+        not_caught = self.get_not_caught()
+        if self.map_state == MapState.MON and not_caught:
+            self.map_state_moviemon = random.choice(not_caught)
+        elif self.map_state == MapState.BALL:
+            self.player.movieballs += 1
+        else:
+            self.map_state = MapState.NONE
 
-    @classmethod
-    def define_catchable(cls, movie_id):
-        cls.catchable = movie_id
+    def move_up(self):
+        if self.player.pos_y != 0:
+            self.player.pos_y -= 1
+            self.set_random_map_state()
 
-  # def transform_events(self, movieball_event, moviemon_id):
-  #    events = ['','', '#']
-  #      if movieball_event == "True":
-  #          events[0] = 'You found a movieball!'
-  #          self.data['nbr_movieball'] += 1
-  #      if moviemon_id != "":
-  #          movie_name = self.get_movie(moviemon_id)['name']
-  #          events[1] = "You tumbled over " + movie_name + ", Press A to catch it!"
-  #          events[2] = 'http://127.0.0.1:8000/battle/' + moviemon_id + '/'
-  #          self.define_catchable(moviemon_id)
-  #      return events
+    def move_down(self):
+        if self.player.pos_y != self.map_size_y - 1:
+            self.player.pos_y += 1
+            self.set_random_map_state()
 
-    # def try_random_events(self):
-    #     events = ['', '#']
-    #     if len(self.data['moviedex']) != len(self.data['list_moviemon']):
-    #         if random.randint(1, 100) <= settings.FIND_MOVIEBALL_PERCENT:
-    #             events[0] = True
-    #         if random.randint(1, 100) <= settings.FIND_MOVIEMON_PERCENT:
-    #             movie_id = self.get_random_movie()
-    #             events[1] = movie_id
-    #     return events
+    def move_left(self):
+        if self.player.pos_x != 0:
+            self.player.pos_x -= 1
+            self.set_random_map_state()
+
+    def move_right(self):
+        if self.player.pos_x != self.map_size_x - 1:
+            self.player.pos_x += 1
+            self.set_random_map_state()
+
+    def try_to_catch(self, movie_id: str):
+        win_rate = self.player.calc_win_rate(movie_id)
+        if random.randrange(100) < win_rate:
+            self.player.moviedex.append(movie_id)
+        else:
+            self.battle_state = BattleState.MISSED
+
 
 class MoviesInfo:
     film_list = []
@@ -132,20 +189,17 @@ class MoviesInfo:
             if response_json.status_code != 200:
                 raise Http404()
             res = response_json.json()
-            if (res['Title'] == 'N/A'):
+            if res['Title'] == 'N/A':
                 raise Http404()
-            if (res['Poster'] == 'N/A'):
+            if res['Poster'] == 'N/A':
                 raise Http404()
-            if (res['imdbRating'] == 'N/A'):
+            if res['imdbRating'] == 'N/A':
                 raise Http404()
 
             cls.film_list.append(res)
 
-    def get_list(self):
-        if len(self.film_list) == 0:
-            self.get_info_list()
-        return self.film_list
-
-if __name__ == "__main__":
-    g = GameData()
-    
+    @classmethod
+    def get_list(cls):
+        if len(cls.film_list) == 0:
+            cls.get_info_list()
+        return cls.film_list

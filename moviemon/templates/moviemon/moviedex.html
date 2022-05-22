@@ -11,16 +11,18 @@
         {% endif %}
 
         {% for m_row in grid %}
-        <tr>
+        <tr style="height: {{ cell_size }}%;
+                line-height: {{ cell_size }}%;">
 
             {% for index in m_row %}
-                <td class="moviemon_cell">
+
+                <td style="width: {{ cell_size }}%;" class="moviemon_cell"
+                    {% if index == active_index %}
+                            id="moviemon_cell_active"
+                    {% endif %}
+                >
                     <div class="poster">
-                        {% load static %}
-                        <img src="{% static moviemons|return_poster:index %}">
-                    </div>
-                    <div class="strength">
-                        {{ moviemons|return_rating:index }}
+                        <img src="{{ moviemons|return_poster:index }}">
                     </div>
                 </td>
             {% endfor %}

@@ -128,7 +128,6 @@ MOVIES = [
     "Doctor Strange in the Multiverse of Madness",
     "Stranger Things",
     "Avatar",
-    "Thor: Love and Thunder",
     "Love, Death & Robots",
     "Doctor Who",
     "Dune",
@@ -149,7 +148,7 @@ MOVIES = [
 
 NBR_MOVIEBALL = 5
 
-PLAYER_STRENGH = 5
+PLAYER_STRENGTH = 5
 
 MAP_WIDTH = 10
 

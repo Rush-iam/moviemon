@@ -29,8 +29,7 @@
 
         <td class="moviemon">
             <div class="poster">
-                {% load static %}
-                <img src="{% static moviemon_img %}">
+                <img src="{{ moviemon_img }}">
             </div>
             <div class="strength">
                 {{ moviemon_strength }}
