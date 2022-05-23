@@ -7,13 +7,13 @@
 
     {% for slot in slots %}
         <tr style="height: 33%; line-height: 33%;"
-                    {% if slot == active_index %}
-                            id="cell_active"
+                    {% if slots|return_by_key:slot == 'Free' %}
+                            id="free"
                     {% endif %}
                 >
             <td
-                {% if slots|return_by_key:slot == 'Free' %}
-                        id="free"
+                {% if slot == active_index %}
+                        id="cell_active"
                 {% endif %}
             >
                 <h3>Slot {{ slot|title }}</h3><br>
